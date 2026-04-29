@@ -152,30 +152,34 @@ h1 {
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 390px;
+  overflow: hidden;
 }
 
 .map-area {
-  position: relative;
-  min-height: calc(100vh - 72px);
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   background: #cad5c5;
+  overflow: hidden;
 }
 
 #map {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   z-index: 1;
 }
 
 .map-toolbar {
-  position: absolute;
-  z-index: 3;
-  top: 12px;
-  left: 12px;
-  right: 12px;
+  position: relative;
+  z-index: 2;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
-  pointer-events: none;
+  background: #fbfaf5;
+  border-bottom: 1px solid var(--line);
 }
 
 .select-label,
@@ -186,26 +190,24 @@ h1 {
 
 .select-label,
 .map-status {
-  min-height: 38px;
+  min-height: 36px;
   display: inline-flex;
   align-items: center;
   padding: 0 10px;
   border-radius: 8px;
   color: var(--green);
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(217, 221, 212, 0.9);
-  box-shadow: 0 8px 24px rgba(25, 43, 39, 0.12);
+  background: #fff;
+  border: 1px solid var(--line);
   font-size: 13px;
   font-weight: 750;
 }
 
 .select {
-  height: 38px;
+  height: 36px;
   padding: 0 34px 0 10px;
   color: var(--green);
-  background: rgba(255, 255, 255, 0.96);
-  border-color: rgba(217, 221, 212, 0.95);
-  box-shadow: 0 8px 24px rgba(25, 43, 39, 0.12);
+  background: #fff;
+  border-color: var(--line);
 }
 
 .map-status {
@@ -213,17 +215,17 @@ h1 {
   font-weight: 650;
 }
 
+.map-status:empty {
+  display: none;
+}
+
 .selected-panel {
-  position: absolute;
-  z-index: 3;
-  left: 14px;
-  bottom: 14px;
-  width: min(460px, calc(100% - 28px));
+  position: relative;
+  z-index: 2;
+  width: 100%;
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(217, 221, 212, 0.95);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+  background: #fff;
+  border-top: 1px solid var(--line);
   overflow: hidden;
 }
 
@@ -232,7 +234,7 @@ h1 {
 }
 
 .selected-inner {
-  padding: 13px;
+  padding: 12px 14px;
 }
 
 .selected-title {
@@ -476,11 +478,12 @@ h1 {
 
   .workspace {
     grid-template-columns: 1fr;
-    grid-template-rows: 58vh auto;
+    grid-template-rows: minmax(500px, 62vh) auto;
+    overflow: visible;
   }
 
   .map-area {
-    min-height: 58vh;
+    min-height: 0;
   }
 
   .sidebar {
@@ -519,9 +522,6 @@ h1 {
   }
 
   .selected-panel {
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
     width: auto;
   }
 

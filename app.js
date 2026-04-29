@@ -109,7 +109,7 @@ function setBaseLayer(layerName) {
       interactive: false,
     }).addTo(map);
     addOpenFreeMapAttribution();
-    setMapStatus("OpenFreeMap，无需 API Key");
+    setMapStatus("");
     return;
   }
 
@@ -119,7 +119,7 @@ function setBaseLayer(layerName) {
   }).addTo(map);
   state.activeLayer = "osm";
   els.layerSelect.value = "osm";
-  setMapStatus("OpenStreetMap，无需 API Key");
+  setMapStatus("OpenStreetMap");
 }
 
 function addOpenFreeMapAttribution() {
