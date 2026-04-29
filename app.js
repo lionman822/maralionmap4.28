@@ -33,7 +33,7 @@ const state = {
   selectedId: DEFAULT_POINTS[0].id,
   userLocation: null,
   watchId: null,
-  activeLayer: "openfreemap",
+  activeLayer: "osm",
   sourceName: "内置 KML：马赛马拉的狮群",
   query: "",
   drawerOpen: false,
@@ -71,6 +71,11 @@ let openFreeMapAttribution = false;
 let openFreeMapFallbackTimer;
 
 function init() {
+  if (!window.L) {
+    setMapStatus("地图组件加载失败，请检查网络后刷新");
+    return;
+  }
+
   map = L.map("map", {
     zoomControl: false,
     attributionControl: true,
@@ -82,7 +87,9 @@ function init() {
   setBaseLayer(state.activeLayer);
   bindEvents();
   render();
-  fitAll();
+  refreshMapLayout({ fit: true });
+  window.addEventListener("resize", () => refreshMapLayout());
+  window.addEventListener("orientationchange", () => refreshMapLayout({ delay: 350 }));
 }
 
 function bindEvents() {
@@ -129,13 +136,18 @@ function setBaseLayer(layerName) {
     }
   }
 
+  addOsmLayer(fallbackMessage || "OpenStreetMap", "osm");
+}
+
+function addOsmLayer(message, selectedLayer = "osm") {
   baseLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
   }).addTo(map);
-  state.activeLayer = "osm";
-  els.layerSelect.value = "osm";
-  setMapStatus(fallbackMessage || "OpenStreetMap");
+  baseLayer.on("tileerror", () => setMapStatus("地图底图加载失败，请检查网络"));
+  state.activeLayer = selectedLayer;
+  els.layerSelect.value = selectedLayer;
+  setMapStatus(message);
 }
 
 function watchOpenFreeMapLoad(layer) {
@@ -466,6 +478,20 @@ function fitAll() {
     bounds.extend([state.userLocation.lat, state.userLocation.lng]);
   }
   map.fitBounds(bounds.pad(0.14), { maxZoom: 13 });
+}
+
+function refreshMapLayout(options = {}) {
+  const delay = options.delay ?? 80;
+  window.setTimeout(() => {
+    if (!map) {
+      return;
+    }
+
+    map.invalidateSize();
+    if (options.fit) {
+      fitAll();
+    }
+  }, delay);
 }
 
 async function handleKmlImport(event) {

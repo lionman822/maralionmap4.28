@@ -1,4 +1,4 @@
-const CACHE_NAME = "masai-mara-lion-map-v1";
+const CACHE_NAME = "masai-mara-lion-map-v4";
 const SHELL_ASSETS = [
   "./",
   "./index.html",
@@ -33,7 +33,8 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   const isMapTile =
-    url.hostname.includes("openfreemap.org") || url.hostname.includes("openstreetmap.org");
+    url.hostname.includes("openfreemap.org") ||
+    url.hostname.includes("openstreetmap.org");
 
   if (isMapTile) {
     event.respondWith(fetch(request));
