@@ -45,7 +45,6 @@ const els = {
   fitBtn: document.getElementById("fitBtn"),
   layerSelect: document.getElementById("layerSelect"),
   mapStatus: document.getElementById("mapStatus"),
-  selectedPanel: document.getElementById("selectedPanel"),
   searchInput: document.getElementById("searchInput"),
   importBtn: document.getElementById("importBtn"),
   resetBtn: document.getElementById("resetBtn"),
@@ -156,7 +155,6 @@ function render() {
   els.filterCount.textContent = state.query ? `${points.length}/${state.points.length}` : "";
   renderMarkers(points);
   renderList(points);
-  renderSelected(selected);
   renderNearest();
 }
 
@@ -254,33 +252,6 @@ function renderList(points) {
       link.addEventListener("click", (event) => event.stopPropagation());
     });
   });
-}
-
-function renderSelected(point) {
-  if (!point) {
-    els.selectedPanel.innerHTML = "";
-    return;
-  }
-
-  const distance = state.userLocation ? formatDistance(distanceMeters(state.userLocation, point)) : "未定位";
-  els.selectedPanel.innerHTML = `
-    <div class="selected-inner">
-      <div class="selected-title">
-        <h2>${escapeHtml(point.name)}</h2>
-        <span class="distance-badge">${distance}</span>
-      </div>
-      <div class="meta-grid">
-        <span>纬度 ${formatCoord(point.lat)}</span>
-        <span>经度 ${formatCoord(point.lng)}</span>
-        <span>海拔 ${formatAltitude(point.alt)}</span>
-        <span>${state.sourceName}</span>
-      </div>
-      <div class="link-row">
-        <a class="link-button" href="${mapsViewUrl(point)}" target="_blank" rel="noreferrer">在 Google Maps 打开</a>
-        <a class="link-button alt" href="${mapsNavUrl(point)}" target="_blank" rel="noreferrer">导航到这里</a>
-      </div>
-    </div>
-  `;
 }
 
 function renderNearest() {
