@@ -235,10 +235,6 @@ function renderList(points) {
             <span>纬度 ${formatCoord(point.lat)}，经度 ${formatCoord(point.lng)}</span>
             <span>海拔 ${formatAltitude(point.alt)}</span>
           </span>
-          <span class="point-actions">
-            <a class="link-button" href="${mapsViewUrl(point)}" target="_blank" rel="noreferrer">打开地图</a>
-            <a class="link-button alt" href="${mapsNavUrl(point)}" target="_blank" rel="noreferrer">导航到这里</a>
-          </span>
         </button>
       `;
     })
@@ -247,9 +243,6 @@ function renderList(points) {
   els.pointList.querySelectorAll(".point-card").forEach((card) => {
     card.addEventListener("click", () => {
       selectPoint(card.dataset.pointId, { pan: true });
-    });
-    card.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", (event) => event.stopPropagation());
     });
   });
 }
@@ -507,14 +500,6 @@ function formatCoord(value) {
 
 function formatAltitude(value) {
   return Number.isFinite(value) ? `${Math.round(value)} m` : "未知";
-}
-
-function mapsViewUrl(point) {
-  return `https://www.google.com/maps/search/?api=1&query=${point.lat},${point.lng}`;
-}
-
-function mapsNavUrl(point) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${point.lat},${point.lng}`;
 }
 
 function slugify(value) {
