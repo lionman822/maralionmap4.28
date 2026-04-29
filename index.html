@@ -8,6 +8,11 @@
       name="description"
       content="基于 Leaflet、OpenFreeMap 和 OpenStreetMap 的马赛马拉狮群点位定位网页应用。"
     />
+    <meta name="theme-color" content="#173e37" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="狮群定位" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://tiles.openfreemap.org" />
     <link rel="preconnect" href="https://tile.openstreetmap.org" />
@@ -40,27 +45,39 @@
             </select>
             <span class="map-status" id="mapStatus">地图加载中</span>
           </div>
+          <div class="nearest-strip" id="nearestStrip" aria-live="polite"></div>
           <div id="map"></div>
         </section>
 
         <aside class="sidebar" aria-label="点位列表">
-          <div class="search-row">
-            <input id="searchInput" class="search" type="search" placeholder="搜索狮群名称" />
-            <button class="button compact" id="importBtn" type="button">导入 KML</button>
-            <button class="button compact" id="resetBtn" type="button">默认点位</button>
-            <input id="kmlInput" type="file" accept=".kml,application/vnd.google-earth.kml+xml,text/xml" hidden />
-          </div>
+          <button class="drawer-handle" id="drawerToggle" type="button" aria-expanded="false" aria-controls="drawerContent">
+            <span>
+              <strong>点位列表</strong>
+              <small id="drawerSummary">27 个点位</small>
+            </span>
+            <span class="drawer-cue" id="drawerCue">展开</span>
+          </button>
 
-          <div class="status-stack">
-            <div class="status-line" id="locationStatus">等待定位</div>
-            <div class="status-line subtle" id="nearestStatus">定位后显示最近点位</div>
-          </div>
+          <div class="drawer-content" id="drawerContent">
+            <div class="search-row">
+              <input id="searchInput" class="search" type="search" placeholder="搜索狮群名称" />
+              <button class="button compact" id="importBtn" type="button">导入 KML</button>
+              <button class="button compact" id="resetBtn" type="button">默认点位</button>
+              <input id="kmlInput" type="file" accept=".kml,application/vnd.google-earth.kml+xml,text/xml" hidden />
+            </div>
 
-          <div class="list-head">
-            <span id="sourceName">内置 KML：马赛马拉的狮群</span>
-            <span id="filterCount"></span>
+            <div class="status-stack">
+              <div class="status-line" id="locationStatus">等待定位</div>
+              <div class="status-line subtle" id="nearestStatus">定位后显示最近点位</div>
+              <div class="status-line privacy-note">位置只在本机计算，不上传服务器</div>
+            </div>
+
+            <div class="list-head">
+              <span id="sourceName">内置 KML：马赛马拉的狮群</span>
+              <span id="filterCount"></span>
+            </div>
+            <div class="point-list" id="pointList"></div>
           </div>
-          <div class="point-list" id="pointList"></div>
         </aside>
       </main>
     </div>

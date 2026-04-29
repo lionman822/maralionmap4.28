@@ -20,7 +20,7 @@ const DEFAULT_POINTS = [
   { id: "purangat", name: "Purangat", lng: 34.98927864047164, lat: -1.528798938550405, alt: 1551.097501673068 },
   { id: "nasipa", name: "Nasipa", lng: 34.90195087016649, lat: -1.479425684557844, alt: 1418.885938203918 },
   { id: "ngiro-are", name: "Ngiro Are", lng: 34.84103483943397, lat: -1.400097478738584, alt: 1404.677174386188 },
-  { id: "gg-yptian-goose", name: "Ggyptian goose", lng: 35.00279890496167, lat: -1.438709912672022, alt: 1509.432743491082 },
+  { id: "egyptian-goose", name: "Egyptian goose", lng: 35.00279890496167, lat: -1.438709912672022, alt: 1509.432743491082 },
   { id: "serena-north", name: "Serena North", lng: 35.03722106307466, lat: -1.358489815508586, alt: 1530.448545300677 },
   { id: "mugoro", name: "Mugoro", lng: 34.94928392820323, lat: -1.388795886419876, alt: 1526.411903905383 },
   { id: "sausage-tree", name: "Sausage tree", lng: 34.91381468977141, lat: -1.344279828975277, alt: 1593.925334058908 },
@@ -36,6 +36,7 @@ const state = {
   activeLayer: "openfreemap",
   sourceName: "内置 KML：马赛马拉的狮群",
   query: "",
+  drawerOpen: false,
 };
 
 const els = {
@@ -45,6 +46,11 @@ const els = {
   fitBtn: document.getElementById("fitBtn"),
   layerSelect: document.getElementById("layerSelect"),
   mapStatus: document.getElementById("mapStatus"),
+  nearestStrip: document.getElementById("nearestStrip"),
+  sidebar: document.querySelector(".sidebar"),
+  drawerToggle: document.getElementById("drawerToggle"),
+  drawerCue: document.getElementById("drawerCue"),
+  drawerSummary: document.getElementById("drawerSummary"),
   searchInput: document.getElementById("searchInput"),
   importBtn: document.getElementById("importBtn"),
   resetBtn: document.getElementById("resetBtn"),
@@ -62,6 +68,7 @@ let markerLayer;
 let userMarker;
 let accuracyCircle;
 let openFreeMapAttribution = false;
+let openFreeMapFallbackTimer;
 
 function init() {
   map = L.map("map", {
@@ -70,7 +77,7 @@ function init() {
   }).setView([-1.455, 35.115], 10);
 
   map.attributionControl.setPrefix("");
-  L.control.zoom({ position: "bottomright" }).addTo(map);
+  L.control.zoom({ position: "topright" }).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
   setBaseLayer(state.activeLayer);
   bindEvents();
@@ -82,6 +89,7 @@ function bindEvents() {
   els.locateBtn.addEventListener("click", locateOnce);
   els.watchBtn.addEventListener("click", toggleWatch);
   els.fitBtn.addEventListener("click", fitAll);
+  els.drawerToggle.addEventListener("click", toggleDrawer);
   els.layerSelect.addEventListener("change", (event) => {
     state.activeLayer = event.target.value;
     setBaseLayer(state.activeLayer);
@@ -96,6 +104,10 @@ function bindEvents() {
 }
 
 function setBaseLayer(layerName) {
+  let fallbackMessage = "";
+
+  clearOpenFreeMapFallback();
+
   if (baseLayer) {
     map.removeLayer(baseLayer);
   }
@@ -103,13 +115,18 @@ function setBaseLayer(layerName) {
   removeOpenFreeMapAttribution();
 
   if (layerName === "openfreemap" && L.maplibreGL) {
-    baseLayer = L.maplibreGL({
-      style: "https://tiles.openfreemap.org/styles/liberty",
-      interactive: false,
-    }).addTo(map);
-    addOpenFreeMapAttribution();
-    setMapStatus("");
-    return;
+    try {
+      baseLayer = L.maplibreGL({
+        style: "https://tiles.openfreemap.org/styles/liberty",
+        interactive: false,
+      }).addTo(map);
+      addOpenFreeMapAttribution();
+      setMapStatus("");
+      watchOpenFreeMapLoad(baseLayer);
+      return;
+    } catch (error) {
+      fallbackMessage = "OpenFreeMap 加载异常，已切换 OpenStreetMap";
+    }
   }
 
   baseLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -118,7 +135,33 @@ function setBaseLayer(layerName) {
   }).addTo(map);
   state.activeLayer = "osm";
   els.layerSelect.value = "osm";
-  setMapStatus("OpenStreetMap");
+  setMapStatus(fallbackMessage || "OpenStreetMap");
+}
+
+function watchOpenFreeMapLoad(layer) {
+  const fallback = () => {
+    if (state.activeLayer === "openfreemap") {
+      setBaseLayer("osm");
+      setMapStatus("OpenFreeMap 加载异常，已切换 OpenStreetMap");
+    }
+  };
+
+  openFreeMapFallbackTimer = window.setTimeout(fallback, 10000);
+
+  const glMap = typeof layer.getMaplibreMap === "function" ? layer.getMaplibreMap() : null;
+  if (!glMap) {
+    return;
+  }
+
+  glMap.once("load", clearOpenFreeMapFallback);
+  glMap.once("error", fallback);
+}
+
+function clearOpenFreeMapFallback() {
+  if (openFreeMapFallbackTimer) {
+    window.clearTimeout(openFreeMapFallbackTimer);
+    openFreeMapFallbackTimer = null;
+  }
 }
 
 function addOpenFreeMapAttribution() {
@@ -151,11 +194,14 @@ function render() {
   }
 
   els.pointCount.textContent = `${state.points.length} 个点位`;
+  els.drawerSummary.textContent = getDrawerSummary();
   els.sourceName.textContent = state.sourceName;
   els.filterCount.textContent = state.query ? `${points.length}/${state.points.length}` : "";
   renderMarkers(points);
+  renderNearestStrip();
   renderList(points);
   renderNearest();
+  updateDrawerState();
 }
 
 function getDisplayPoints() {
@@ -171,6 +217,7 @@ function getDisplayPoints() {
     .map((point) => ({
       ...point,
       distanceMeters: distanceMeters(state.userLocation, point),
+      bearingDegrees: bearingDegrees(state.userLocation, point),
     }))
     .sort((a, b) => a.distanceMeters - b.distanceMeters);
 }
@@ -204,7 +251,7 @@ function makePointIcon(label, selected) {
 
 function makePopup(point) {
   const distance = state.userLocation
-    ? `<br>距离：${formatDistance(distanceMeters(state.userLocation, point))}`
+    ? `<br>方位：${formatPointDirection(point)}`
     : "";
   return `
     <p class="popup-title">${escapeHtml(point.name)}</p>
@@ -223,8 +270,7 @@ function renderList(points) {
 
   els.pointList.innerHTML = points
     .map((point) => {
-      const distance =
-        point.distanceMeters !== undefined ? formatDistance(point.distanceMeters) : "未定位";
+      const distance = point.distanceMeters !== undefined ? formatPointDirection(point) : "未定位";
       return `
         <button class="point-card${point.id === state.selectedId ? " is-selected" : ""}" type="button" data-point-id="${point.id}">
           <span class="point-row">
@@ -254,10 +300,39 @@ function renderNearest() {
   }
 
   const nearest = state.points
-    .map((point) => ({ ...point, distanceMeters: distanceMeters(state.userLocation, point) }))
+    .map((point) => enrichPointWithLocation(point))
     .sort((a, b) => a.distanceMeters - b.distanceMeters)[0];
 
-  els.nearestStatus.textContent = `最近：${nearest.name}，${formatDistance(nearest.distanceMeters)}`;
+  els.nearestStatus.textContent = `最近：${nearest.name}，${formatPointDirection(nearest)}`;
+}
+
+function renderNearestStrip() {
+  if (!state.userLocation || !state.points.length) {
+    els.nearestStrip.classList.remove("has-items");
+    els.nearestStrip.innerHTML = "";
+    return;
+  }
+
+  const nearestThree = state.points
+    .map((point) => enrichPointWithLocation(point))
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)
+    .slice(0, 3);
+
+  els.nearestStrip.innerHTML = nearestThree
+    .map(
+      (point, index) => `
+        <button class="nearest-chip" type="button" data-point-id="${point.id}">
+          <strong>${index + 1}. ${escapeHtml(point.name)}</strong>
+          <span>${formatPointDirection(point)}</span>
+        </button>
+      `,
+    )
+    .join("");
+
+  els.nearestStrip.classList.add("has-items");
+  els.nearestStrip.querySelectorAll(".nearest-chip").forEach((chip) => {
+    chip.addEventListener("click", () => selectPoint(chip.dataset.pointId, { pan: true }));
+  });
 }
 
 function selectPoint(id, options = {}) {
@@ -271,6 +346,7 @@ function selectPoint(id, options = {}) {
 
   if (options.pan) {
     map.flyTo([point.lat, point.lng], Math.max(map.getZoom(), 13), { duration: 0.75 });
+    closeDrawerOnMobile();
   }
 
   if (options.openPopup) {
@@ -468,6 +544,36 @@ function restoreDefaultPoints() {
   updateLocationStatus("已恢复默认点位");
 }
 
+function toggleDrawer() {
+  state.drawerOpen = !state.drawerOpen;
+  updateDrawerState();
+}
+
+function updateDrawerState() {
+  els.sidebar.classList.toggle("is-open", state.drawerOpen);
+  els.drawerToggle.setAttribute("aria-expanded", String(state.drawerOpen));
+  els.drawerCue.textContent = state.drawerOpen ? "收起" : "展开";
+}
+
+function closeDrawerOnMobile() {
+  if (!window.matchMedia("(max-width: 980px)").matches) {
+    return;
+  }
+  state.drawerOpen = false;
+  updateDrawerState();
+}
+
+function getDrawerSummary() {
+  if (!state.userLocation || !state.points.length) {
+    return `${state.points.length} 个点位`;
+  }
+
+  const nearest = state.points
+    .map((point) => enrichPointWithLocation(point))
+    .sort((a, b) => a.distanceMeters - b.distanceMeters)[0];
+  return `最近 ${nearest.name} ${formatPointDirection(nearest)}`;
+}
+
 function distanceMeters(a, b) {
   const earthRadius = 6371008.8;
   const lat1 = toRadians(a.lat);
@@ -478,6 +584,64 @@ function distanceMeters(a, b) {
     Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLng / 2) * Math.sin(deltaLng / 2);
   return 2 * earthRadius * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function bearingDegrees(a, b) {
+  const lat1 = toRadians(a.lat);
+  const lat2 = toRadians(b.lat);
+  const deltaLng = toRadians(b.lng - a.lng);
+  const y = Math.sin(deltaLng) * Math.cos(lat2);
+  const x =
+    Math.cos(lat1) * Math.sin(lat2) -
+    Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+  return (((Math.atan2(y, x) * 180) / Math.PI) + 360) % 360;
+}
+
+function enrichPointWithLocation(point) {
+  return {
+    ...point,
+    distanceMeters: distanceMeters(state.userLocation, point),
+    bearingDegrees: bearingDegrees(state.userLocation, point),
+  };
+}
+
+function formatPointDirection(point) {
+  const distance = Number.isFinite(point.distanceMeters)
+    ? point.distanceMeters
+    : state.userLocation
+      ? distanceMeters(state.userLocation, point)
+      : NaN;
+
+  if (!Number.isFinite(distance)) {
+    return "未定位";
+  }
+  const bearing = Number.isFinite(point.bearingDegrees)
+    ? point.bearingDegrees
+    : bearingDegrees(state.userLocation, point);
+  return `${formatBearing(bearing)}方向 ${formatDistance(distance)}`;
+}
+
+function formatBearing(degrees) {
+  const directions = [
+    "北",
+    "东北偏北",
+    "东北",
+    "东北偏东",
+    "东",
+    "东南偏东",
+    "东南",
+    "东南偏南",
+    "南",
+    "西南偏南",
+    "西南",
+    "西南偏西",
+    "西",
+    "西北偏西",
+    "西北",
+    "西北偏北",
+  ];
+  const index = Math.round((((degrees % 360) + 360) % 360) / 22.5) % directions.length;
+  return directions[index];
 }
 
 function toRadians(value) {
@@ -519,6 +683,12 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  });
 }
 
 window.addEventListener("DOMContentLoaded", init);

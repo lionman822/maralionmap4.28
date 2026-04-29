@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="马赛马拉狮群定位">
+  <rect width="512" height="512" rx="96" fill="#173e37"/>
+  <path d="M256 64c-83.9 0-152 68.1-152 152 0 114 152 232 152 232s152-118 152-232c0-83.9-68.1-152-152-152z" fill="#cf6f2c"/>
+  <circle cx="256" cy="216" r="68" fill="#fff6e8"/>
+  <circle cx="256" cy="216" r="32" fill="#173e37"/>
+  <path d="M146 388c29 26 66 48 110 48s81-22 110-48c-33 38-70 60-110 60s-77-22-110-60z" fill="#fff6e8" opacity=".82"/>
+</svg>
